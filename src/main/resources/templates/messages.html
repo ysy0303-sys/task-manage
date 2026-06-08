@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消息中心</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/js/theme.js"></script>
+    <style>
+        :root {
+            --primary: #73A8C2;
+            --primary-dark: #5A8FA8;
+            --primary-light: #E4F0F6;
+            --bg: #EEF3F7;
+            --card: #FFFFFF;
+            --text: #2C3E50;
+            --text-light: #7F8C8D;
+            --border: #E8ECF1;
+            --success: #6ECB8C;
+            --warning: #F5A623;
+            --danger: #E85D75;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow: 0 2px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --transition: 0.2s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Microsoft Yahei', sans-serif;
+            background: var(--bg);
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text);
+        }
+
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.15); z-index: 9; display: none;
+        }
+        .overlay.show { display: block; }
+
+        /* ========== Sidebar ========== */
+        .sidebar {
+            position: fixed; top: 0; left: 0; width: 210px; height: 100vh;
+            background: var(--card); z-index: 10;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.04);
+            padding: 24px 18px; display: flex; flex-direction: column;
+        }
+        .sidebar-logo {
+            font-size: 20px; font-weight: 700; color: var(--primary);
+            text-align: center; margin-bottom: 28px; letter-spacing: -0.5px;
+        }
+        .menu-wrapper { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+        .add-btn {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: none; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff; font-size: 24px; cursor: pointer; margin: 0 auto 16px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 14px rgba(115,168,194,0.35);
+            transition: all var(--transition);
+        }
+        .add-btn:hover { transform: scale(1.06); box-shadow: 0 6px 20px rgba(115,168,194,0.45); }
+
+        .menu-item {
+            padding: 11px 14px; border-radius: var(--radius-sm); font-size: 14px;
+            cursor: pointer; display: flex; justify-content: space-between;
+            align-items: center; color: var(--text); transition: all var(--transition);
+            font-weight: 500;
+        }
+        .menu-item:hover { background: var(--primary-light); color: var(--primary); }
+        .menu-item i { font-size: 16px; width: 22px; text-align: center; color: var(--text-light); }
+        .menu-item:hover i { color: var(--primary); }
+        .menu-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+        .menu-item.active i { color: var(--primary); }
+
+        .menu-badge {
+            background: var(--danger); color: #fff; font-size: 11px;
+            min-width: 20px; height: 20px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; padding: 0 6px;
+        }
+        .menu-badge.hidden { display: none; }
+
+        .arrow { font-size: 12px; color: var(--text-light); }
+
+        .sidebar-footer {
+            border-top: 1px solid var(--border); padding-top: 14px; margin-top: auto;
+        }
+
+        /* ========== Main ========== */
+        .main {
+            margin-left: 210px; height: 100vh;
+            display: flex; flex-direction: column; padding: 20px 28px;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; flex-shrink: 0;
+        }
+        .top-left { display: flex; align-items: center; gap: 16px; }
+        .menu-btn {
+            font-size: 22px; color: var(--text); background: var(--card);
+            border: none; width: 42px; height: 42px; border-radius: 50%;
+            display: none; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: var(--shadow-sm);
+        }
+        .page-title { font-size: 22px; font-weight: 700; color: var(--text); }
+        .page-subtitle { font-size: 13px; color: var(--text-light); font-weight: 400; margin-top: 2px; }
+
+        .top-right { display: flex; align-items: center; gap: 6px; }
+        .icon-btn {
+            width: 40px; height: 40px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; background: var(--card);
+            border: none; font-size: 18px; color: var(--text-light); cursor: pointer;
+            box-shadow: var(--shadow-sm); transition: all var(--transition);
+            position: relative;
+        }
+        .icon-btn:hover { color: var(--primary); background: var(--primary-light); }
+
+        /* ========== Content ========== */
+        .content-area {
+            flex: 1; min-height: 0; overflow: hidden;
+        }
+
+        .msg-panel {
+            height: 100%; display: flex; flex-direction: column;
+            background: var(--card); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden;
+        }
+        .msg-panel-header {
+            padding: 14px 22px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        .msg-panel-header h2 {
+            font-size: 16px; font-weight: 600; color: var(--text);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .count-badge {
+            background: var(--primary-light); color: var(--primary);
+            font-size: 13px; padding: 2px 10px; border-radius: 20px; font-weight: 600;
+        }
+        .mark-all-btn {
+            padding: 6px 16px; border: 2px solid var(--primary); border-radius: 20px;
+            background: transparent; color: var(--primary); font-size: 13px;
+            cursor: pointer; font-weight: 500; transition: all var(--transition);
+        }
+        .mark-all-btn:hover { background: var(--primary); color: #fff; }
+
+        .msg-list-wrap { flex: 1; overflow-y: auto; padding: 8px 16px; }
+        .msg-list-wrap::-webkit-scrollbar { width: 5px; }
+        .msg-list-wrap::-webkit-scrollbar-thumb { background: #d0d8e0; border-radius: 10px; }
+
+        .msg-item {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 14px 16px; border-radius: var(--radius-sm);
+            margin-bottom: 4px; transition: all var(--transition);
+            cursor: pointer; position: relative;
+        }
+        .msg-item:hover { background: #f8fafc; }
+        .msg-item.unread { background: var(--primary-light); }
+        .msg-item.unread::before {
+            content: ''; position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+            width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
+        }
+
+        .msg-icon {
+            width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; margin-top: 2px;
+        }
+        .msg-icon.reminder { background: #FFF3E0; color: var(--warning); }
+        .msg-icon.report { background: #E8F0FE; color: #6C8EBF; }
+
+        .msg-item.report-msg {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .msg-item.report-msg .msg-body {
+            margin-top: 8px;
+        }
+        .msg-item.report-msg .msg-report-content {
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            background: #fafbfc;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        .msg-item.report-msg .msg-report-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        .msg-item.report-msg .msg-report-content::-webkit-scrollbar-thumb {
+            background: #d0d8e0;
+            border-radius: 10px;
+        }
+
+        .msg-body { flex: 1; min-width: 0; }
+        .msg-text {
+            font-size: 14px; color: var(--text); line-height: 1.5;
+            word-break: break-word;
+        }
+        .msg-text strong { color: var(--primary-dark); }
+        .msg-time {
+            font-size: 12px; color: var(--text-light); margin-top: 4px;
+        }
+
+        .msg-actions { flex-shrink: 0; display: flex; gap: 6px; }
+        .msg-action-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: none; font-size: 13px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--transition);
+        }
+        .msg-action-btn.read {
+            background: #e8f5e9; color: var(--success);
+        }
+        .msg-action-btn.read:hover { background: var(--success); color: #fff; }
+        .msg-action-btn.goto {
+            background: var(--primary-light); color: var(--primary);
+        }
+        .msg-action-btn.goto:hover { background: var(--primary); color: #fff; }
+
+        .empty-state {
+            text-align: center; color: var(--text-light); padding: 80px 20px;
+        }
+        .empty-state i { font-size: 48px; display: block; margin-bottom: 14px; opacity: 0.3; }
+        .empty-state p { font-size: 15px; }
+
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--text); color: #fff; padding: 12px 32px;
+            border-radius: 25px; font-size: 15px; font-weight: 600;
+            z-index: 99999; opacity: 0; transition: all 0.3s ease; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 900px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar.show { transform: translateX(0); }
+            .main { margin-left: 0; padding: 14px; }
+            .menu-btn { display: flex; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="overlay" id="overlay" onclick="hideSidebar()"></div>
+
+<div class="layout">
+    <!-- 侧边栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-logo">TaskFlow</div>
+        <div class="menu-wrapper">
+            <button class="add-btn" onclick="location.href='/index'">+</button>
+            <div class="menu-item" onclick="location.href='/index'"><i class="fa-solid fa-sun"></i> 今日待办</div>
+            <div class="menu-item" onclick="location.href='/tasks'"><i class="fa-solid fa-list-check"></i> 待办事项</div>
+            <div class="menu-item" onclick="location.href='/shitu'"><i class="fa-solid fa-calendar-days"></i> 任务视图</div>
+            <div class="menu-item active" onclick="location.href='/messages'">
+                <span><i class="fa-solid fa-message"></i> 消息</span>
+                <span class="menu-badge hidden" id="menuBadge">0</span>
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="menu-item" onclick="location.href='/profile'"><i class="fa-solid fa-user"></i> 个人中心</div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main">
+        <div class="top-bar">
+            <div class="top-left">
+                <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+                <div>
+                    <div class="page-title">消息中心</div>
+                    <div class="page-subtitle">查看任务提醒和通知</div>
+                </div>
+            </div>
+            <div class="top-right">
+                <button class="icon-btn" onclick="location.href='/index'" title="今日待办"><i class="fa-solid fa-sun"></i></button>
+                <button class="icon-btn" onclick="location.href='/tasks'" title="全部任务"><i class="fa-solid fa-list-check"></i></button>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="msg-panel">
+                <div class="msg-panel-header">
+                    <h2><i class="fa-solid fa-bell" style="color:var(--primary);"></i> 全部消息 <span class="count-badge" id="msgCount">0</span></h2>
+                    <button class="mark-all-btn" onclick="markAllRead()">全部已读</button>
+                </div>
+                <div class="msg-list-wrap" id="msgList">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-bell-slash"></i>
+                        <p>暂无消息</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    let notifications = [];
+
+    loadNotifications();
+    loadUnreadBadge();
+
+    function loadNotifications() {
+        fetch('/notification/list')
+            .then(res => res.json())
+            .then(json => {
+                if (json.code === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                notifications = json.data || [];
+                renderMessages();
+            })
+            .catch(() => { notifications = []; renderMessages(); });
+    }
+
+    function loadUnreadBadge() {
+        fetch('/notification/unread-count')
+            .then(res => res.json())
+            .then(json => {
+                if (json.code === 200) {
+                    updateBadge(json.data);
+                }
+            });
+    }
+
+    function updateBadge(count) {
+        const badge = document.getElementById('menuBadge');
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function renderMessages() {
+        const container = document.getElementById('msgList');
+        document.getElementById('msgCount').textContent = notifications.length;
+
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fa-solid fa-bell-slash"></i>
+                    <p>暂无消息</p>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        notifications.forEach(n => {
+            const isUnread = !n.isRead;
+            const isReport = n.type === 'WEEKLY_REPORT';
+            const rowClass = (isUnread ? ' unread' : '') + (isReport ? ' report-msg' : '');
+            const timeStr = formatTime(n.createdAt);
+            const iconClass = isReport ? 'report' : (n.type === 'DEADLINE_REMINDER' ? 'reminder' : '');
+            const iconHtml = isReport ? '<i class="fa-solid fa-robot"></i>' : '<i class="fa-solid fa-clock"></i>';
+
+            if (isReport) {
+                html += `
+                <div class="msg-item${rowClass}" id="msg-${n.id}">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="msg-icon ${iconClass}">
+                            ${iconHtml}
+                        </div>
+                        <div class="msg-body">
+                            <div class="msg-text" style="font-weight:600;">${n.taskTitle || '本周工作总结'}</div>
+                            <div class="msg-time">${timeStr}</div>
+                        </div>
+                        <div class="msg-actions">
+                            ${isUnread ? '<button class="msg-action-btn read" onclick="markRead(' + n.id + ')" title="标为已读"><i class="fa-solid fa-check"></i></button>' : ''}
+                        </div>
+                    </div>
+                    <div class="msg-report-content">${escapeHtml(n.message)}</div>
+                </div>`;
+            } else {
+                html += `
+                <div class="msg-item${rowClass}" id="msg-${n.id}">
+                    <div class="msg-icon ${iconClass}">
+                        ${iconHtml}
+                    </div>
+                    <div class="msg-body">
+                        <div class="msg-text">${n.message.replace(/「/g, '<strong>').replace(/」/g, '</strong>')}</div>
+                        <div class="msg-time">${timeStr}</div>
+                    </div>
+                    <div class="msg-actions">
+                        ${isUnread ? '<button class="msg-action-btn read" onclick="markRead(' + n.id + ')" title="标为已读"><i class="fa-solid fa-check"></i></button>' : ''}
+                        <button class="msg-action-btn goto" onclick="goToTask(${n.taskId})" title="查看任务"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>`;
+            }
+        });
+        container.innerHTML = html;
+    }
+
+    function formatTime(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now - d;
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffHr = Math.floor(diffMs / 3600000);
+
+        if (diffMin < 1) return '刚刚';
+        if (diffMin < 60) return diffMin + ' 分钟前';
+        if (diffHr < 24) return diffHr + ' 小时前';
+        if (diffHr < 48) return '昨天';
+        const m = d.getMonth() + 1;
+        const day = d.getDate();
+        return m + '月' + day + '日 ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    function markRead(id) {
+        fetch('/notification/read/' + id, { method: 'POST' })
+            .then(res => res.json())
+            .then(json => {
+                if (json.code === 200) {
+                    const n = notifications.find(x => x.id === id);
+                    if (n) n.isRead = true;
+                    renderMessages();
+                    loadUnreadBadge();
+                }
+            });
+    }
+
+    function markAllRead() {
+        fetch('/notification/read-all', { method: 'POST' })
+            .then(res => res.json())
+            .then(json => {
+                if (json.code === 200) {
+                    notifications.forEach(n => n.isRead = true);
+                    renderMessages();
+                    loadUnreadBadge();
+                    showToast('已全部标为已读');
+                }
+            });
+    }
+
+    function goToTask(taskId) {
+        if (taskId) {
+            window.location.href = '/tasks';
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    // ========== 侧边栏 ==========
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('show');
+        document.getElementById('overlay').classList.toggle('show');
+    }
+    function hideSidebar() {
+        document.getElementById('sidebar').classList.remove('show');
+        document.getElementById('overlay').classList.remove('show');
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/js/theme.js"></script>
+    <style>
+        :root {
+            --primary: #73A8C2;
+            --primary-dark: #5A8FA8;
+            --primary-light: #E4F0F6;
+            --bg: #EEF3F7;
+            --card: #FFFFFF;
+            --text: #2C3E50;
+            --text-light: #7F8C8D;
+            --border: #E8ECF1;
+            --success: #6ECB8C;
+            --warning: #F5A623;
+            --danger: #E85D75;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow: 0 2px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --transition: 0.2s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Microsoft Yahei', sans-serif;
+            background: var(--bg);
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text);
+        }
+
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.15); z-index: 9; display: none;
+        }
+        .overlay.show { display: block; }
+
+        /* ========== Sidebar ========== */
+        .sidebar {
+            position: fixed; top: 0; left: 0; width: 210px; height: 100vh;
+            background: var(--card); z-index: 10;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.04);
+            padding: 24px 18px; display: flex; flex-direction: column;
+        }
+        .sidebar-logo {
+            font-size: 20px; font-weight: 700; color: var(--primary);
+            text-align: center; margin-bottom: 28px; letter-spacing: -0.5px;
+        }
+        .menu-wrapper { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .add-btn {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: none; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff; font-size: 24px; cursor: pointer; margin: 0 auto 16px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 14px rgba(115,168,194,0.35);
+            transition: all var(--transition);
+        }
+        .add-btn:hover { transform: scale(1.06); box-shadow: 0 6px 20px rgba(115,168,194,0.45); }
+        .menu-item {
+            padding: 11px 14px; border-radius: var(--radius-sm); font-size: 14px;
+            cursor: pointer; display: flex; justify-content: space-between;
+            align-items: center; color: var(--text); transition: all var(--transition);
+            font-weight: 500;
+        }
+        .menu-item:hover { background: var(--primary-light); color: var(--primary); }
+        .menu-item i { font-size: 16px; width: 22px; text-align: center; color: var(--text-light); }
+        .menu-item:hover i { color: var(--primary); }
+        .sidebar-footer {
+            border-top: 1px solid var(--border); padding-top: 14px; margin-top: auto;
+        }
+
+        /* ========== Main ========== */
+        .main {
+            margin-left: 210px; height: 100vh;
+            display: flex; flex-direction: column; padding: 20px 28px;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 20px; flex-shrink: 0;
+        }
+        .menu-btn {
+            font-size: 22px; color: var(--text); background: var(--card);
+            border: none; width: 42px; height: 42px; border-radius: 50%;
+            display: none; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: var(--shadow-sm);
+        }
+        .page-title { font-size: 22px; font-weight: 700; }
+
+        .content-area {
+            flex: 1; display: flex; gap: 22px; min-height: 0; overflow-y: auto;
+        }
+        .content-area::-webkit-scrollbar { width: 5px; }
+        .content-area::-webkit-scrollbar-thumb { background: #d0d8e0; border-radius: 10px; }
+
+        .profile-card {
+            background: var(--card); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 32px; flex: 1;
+        }
+
+        .user-info-section {
+            text-align: center; padding-bottom: 24px; margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .user-avatar {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: var(--primary-light); margin: 0 auto 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; color: var(--primary);
+            position: relative; cursor: pointer; overflow: hidden;
+            transition: all var(--transition);
+        }
+        .user-avatar:hover { opacity: 0.85; }
+        .user-avatar img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+        }
+        .user-avatar .avatar-hint {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.5); color: #fff; font-size: 10px;
+            padding: 4px 0; text-align: center; opacity: 0; transition: opacity 0.2s;
+        }
+        .user-avatar:hover .avatar-hint { opacity: 1; }
+        .user-name-row {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .user-name {
+            font-size: 20px; font-weight: 700; color: var(--text);
+        }
+        .nickname-edit-btn {
+            background: none; border: none; color: var(--text-light);
+            cursor: pointer; font-size: 13px; padding: 2px;
+            transition: color var(--transition);
+        }
+        .nickname-edit-btn:hover { color: var(--primary); }
+        .nickname-input {
+            font-size: 20px; font-weight: 700; color: var(--text);
+            border: 2px solid var(--primary); border-radius: 8px;
+            padding: 4px 10px; text-align: center; outline: none;
+            width: 160px; background: #fff;
+        }
+        .user-id {
+            font-size: 13px; color: var(--text-light); margin-top: 4px;
+        }
+
+        .menu-list { display: flex; flex-direction: column; gap: 2px; }
+        .profile-menu-item {
+            padding: 16px 20px; display: flex; justify-content: space-between;
+            align-items: center; cursor: pointer; border-radius: var(--radius-sm);
+            transition: all var(--transition); font-size: 15px; font-weight: 500;
+        }
+        .profile-menu-item:hover { background: var(--bg); }
+        .profile-menu-item i.fa-chevron-right { color: var(--text-light); font-size: 12px; }
+        .profile-menu-item.logout { color: var(--danger); }
+        .profile-menu-item.logout:hover { background: #fde8ec; }
+
+        /* ========== Modal ========== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.35); display: none; align-items: center;
+            justify-content: center; z-index: 999;
+        }
+        .modal-container {
+            width: 100%; max-width: 400px; background: var(--card);
+            border-radius: var(--radius); padding: 28px 24px;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-container h3 {
+            font-size: 18px; font-weight: 600; margin-bottom: 20px; text-align: center;
+        }
+        .modal-container label {
+            font-size: 14px; color: var(--text-light); display: block; margin-bottom: 6px;
+        }
+        .modal-container input {
+            width: 100%; padding: 12px 14px; border: 2px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 15px; outline: none;
+            margin-bottom: 14px; transition: all var(--transition);
+        }
+        .modal-container input:focus { border-color: var(--primary); }
+        .modal-btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-btn {
+            padding: 10px 20px; border-radius: 20px; border: none;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--transition);
+        }
+        .modal-btn.cancel { background: var(--bg); color: var(--text); }
+        .modal-btn.confirm { background: var(--primary); color: #fff; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--text); color: #fff; padding: 12px 32px;
+            border-radius: 25px; font-size: 15px; font-weight: 600;
+            z-index: 99999; opacity: 0; transition: all 0.3s ease; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        /* ========== 退出确认弹窗 ========== */
+        .confirm-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.35); display: none; align-items: center;
+            justify-content: center; z-index: 9999;
+        }
+        .confirm-card {
+            background: var(--card); border-radius: var(--radius); padding: 32px 28px 24px;
+            width: 380px; max-width: 90vw; text-align: center;
+            box-shadow: var(--shadow-lg); animation: popIn 0.25s ease;
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .confirm-icon {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: #fde8ec; color: var(--danger); font-size: 28px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .confirm-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .confirm-desc { font-size: 14px; color: var(--text-light); margin-bottom: 20px; line-height: 1.6; }
+        .confirm-btns { display: flex; gap: 12px; }
+        .confirm-btns button {
+            flex: 1; padding: 12px; border-radius: 24px; border: none;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: all var(--transition);
+        }
+        .confirm-btns .btn-cancel { background: #eef2f6; color: var(--text); }
+        .confirm-btns .btn-cancel:hover { background: #dde4ec; }
+        .confirm-btns .btn-danger { background: var(--danger); color: #fff; }
+        .confirm-btns .btn-danger:hover { filter: brightness(1.1); }
+
+        @media (max-width: 900px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar.show { transform: translateX(0); }
+            .main { margin-left: 0; padding: 14px; }
+            .menu-btn { display: flex; }
+        }
+    </style>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="hideSidebar()"></div>
+
+<!-- 侧边栏 -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">TaskFlow</div>
+    <div class="menu-wrapper">
+        <button class="add-btn" onclick="location.href='/'">+</button>
+        <div class="menu-item" onclick="location.href='/index'"><i class="fa-solid fa-sun"></i> 今日待办</div>
+        <div class="menu-item" onclick="location.href='/tasks'"><i class="fa-solid fa-list-check"></i> 待办事项</div>
+        <div class="menu-item" onclick="location.href='/shitu'"><i class="fa-solid fa-calendar-days"></i> 任务视图</div>
+        <div class="menu-item" onclick="location.href='/messages'"><i class="fa-solid fa-message"></i> 消息</div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="menu-item" style="background:var(--primary-light);color:var(--primary);font-weight:600;" onclick="location.href='/profile'"><i class="fa-solid fa-user"></i> 个人中心</div>
+    </div>
+</div>
+
+<div class="main">
+    <div class="top-bar">
+        <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+        <div class="page-title">个人中心</div>
+    </div>
+
+    <div class="content-area">
+        <div class="profile-card">
+            <div class="user-info-section">
+                <div class="user-avatar" id="avatarContainer" onclick="triggerAvatarUpload()" title="点击更换头像">
+                    <i class="fa-solid fa-user" id="defaultAvatarIcon"></i>
+                    <img id="avatarImg" src="" alt="头像" style="display:none;">
+                    <div class="avatar-hint">更换头像</div>
+                </div>
+                <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="uploadAvatar(this.files[0])">
+                <div class="user-name-row">
+                    <span class="user-name" id="displayUsername">加载中...</span>
+                    <button class="nickname-edit-btn" id="editNicknameBtn" onclick="editNickname()" title="修改昵称"><i class="fa-solid fa-pen"></i></button>
+                </div>
+                <div class="user-id" id="displayUserSub">TaskFlow 用户</div>
+            </div>
+
+            <div class="menu-list">
+                <div class="profile-menu-item" onclick="location.href='/theme-color'">
+                    <span><i class="fa-solid fa-palette" style="margin-right:12px;color:var(--primary);"></i> 主题颜色</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="profile-menu-item" onclick="openPasswordModal()">
+                    <span><i class="fa-solid fa-lock" style="margin-right:12px;color:var(--warning);"></i> 修改密码</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="profile-menu-item" onclick="openReportSettingsModal()">
+                    <span><i class="fa-solid fa-robot" style="margin-right:12px;color:var(--primary);"></i> 周报设置</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="profile-menu-item" onclick="openFeedbackModal()">
+                    <span><i class="fa-solid fa-comment-dots" style="margin-right:12px;color:var(--primary);"></i> 意见反馈</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="profile-menu-item logout" onclick="handleLogout()">
+                    <span><i class="fa-solid fa-right-from-bracket" style="margin-right:12px;"></i> 退出登录</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码弹窗 -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal-container">
+        <h3>修改密码</h3>
+        <label>原密码</label>
+        <input type="password" id="oldPwd" placeholder="请输入原密码">
+        <label>新密码</label>
+        <input type="password" id="newPwd" placeholder="请输入新密码（至少6位）">
+        <label>确认新密码</label>
+        <input type="password" id="confirmPwd" placeholder="请再次输入新密码">
+        <div class="modal-btn-row">
+            <button class="modal-btn cancel" onclick="closePasswordModal()">取消</button>
+            <button class="modal-btn confirm" onclick="changePassword()">确认修改</button>
+        </div>
+    </div>
+</div>
+
+<!-- 周报设置弹窗 -->
+<div class="modal-overlay" id="reportSettingsModal">
+    <div class="modal-container">
+        <h3>📊 周报设置</h3>
+        <label>选择每周发送周报的日子</label>
+        <div class="day-selector" id="daySelector">
+            <button class="day-btn" data-day="1">周一</button>
+            <button class="day-btn" data-day="2">周二</button>
+            <button class="day-btn" data-day="3">周三</button>
+            <button class="day-btn" data-day="4">周四</button>
+            <button class="day-btn" data-day="5">周五</button>
+            <button class="day-btn" data-day="6">周六</button>
+            <button class="day-btn" data-day="7">周日</button>
+            <button class="day-btn off" data-day="0">关闭</button>
+        </div>
+        <p class="hint-text" id="reportHint" style="text-align:center;font-size:13px;color:var(--text-light);margin-top:8px;"></p>
+        <div class="modal-btn-row" style="margin-top:16px;">
+            <button class="modal-btn cancel" onclick="closeReportSettingsModal()">取消</button>
+            <button class="modal-btn" style="background:var(--success);color:#fff;" onclick="generateReportNow()">立即生成</button>
+            <button class="modal-btn confirm" onclick="saveReportSettings()">保存设置</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .day-selector { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .day-btn {
+        padding: 8px 16px; border: 2px solid var(--border); border-radius: 20px;
+        background: var(--card); color: var(--text); font-size: 14px;
+        cursor: pointer; transition: all var(--transition); font-weight: 500;
+    }
+    .day-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .day-btn.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .day-btn.off.selected { background: var(--danger); border-color: var(--danger); }
+</style>
+
+<!-- 意见反馈弹窗 -->
+<div class="modal-overlay" id="feedbackModal">
+    <div class="modal-container">
+        <h3>意见反馈</h3>
+        <label>反馈内容</label>
+        <textarea id="feedbackContent" rows="4" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:15px;outline:none;resize:vertical;font-family:inherit;" placeholder="请输入您的意见或建议..."></textarea>
+        <div class="modal-btn-row" style="margin-top:14px;">
+            <button class="modal-btn cancel" onclick="closeFeedbackModal()">取消</button>
+            <button class="modal-btn confirm" onclick="submitFeedback()">提交</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 退出登录确认弹窗 -->
+<div class="confirm-overlay" id="logoutConfirmOverlay">
+    <div class="confirm-card">
+        <div class="confirm-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+        <div class="confirm-title">确认退出</div>
+        <div class="confirm-desc">确定要退出登录吗？</div>
+        <div class="confirm-btns">
+            <button class="btn-cancel" onclick="closeLogoutConfirm()">我再想想</button>
+            <button class="btn-danger" onclick="confirmLogout()">确定</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('show');
+        document.getElementById('overlay').classList.toggle('show');
+    }
+    function hideSidebar() {
+        document.getElementById('sidebar').classList.remove('show');
+        document.getElementById('overlay').classList.remove('show');
+    }
+
+    // 加载用户信息
+    async function loadUserInfo() {
+        try {
+            const res = await fetch('/user/me');
+            const data = await res.json();
+            if (!data.success) {
+                window.location.href = '/login';
+                return;
+            }
+            const displayName = data.nickname || data.username;
+            document.getElementById('displayUsername').innerText = displayName;
+            document.getElementById('displayUserSub').innerText = data.nickname ? '用户名: ' + data.username : 'TaskFlow 用户';
+            if (data.avatar) {
+                document.getElementById('avatarImg').src = data.avatar;
+                document.getElementById('avatarImg').style.display = 'block';
+                document.getElementById('defaultAvatarIcon').style.display = 'none';
+            }
+        } catch(e) {
+            document.getElementById('displayUsername').innerText = '加载失败';
+        }
+    }
+    loadUserInfo();
+
+    // 编辑昵称
+    function editNickname() {
+        const span = document.getElementById('displayUsername');
+        const btn = document.getElementById('editNicknameBtn');
+        const current = span.innerText;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'nickname-input';
+        input.value = current;
+        input.maxLength = 20;
+        input.id = 'nicknameInput';
+        span.replaceWith(input);
+        btn.style.display = 'none';
+        input.focus();
+        input.select();
+        input.addEventListener('blur', saveNickname);
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') saveNickname(); });
+    }
+
+    async function saveNickname() {
+        const input = document.getElementById('nicknameInput');
+        if (!input) return;
+        const nickname = input.value.trim();
+        const span = document.createElement('span');
+        span.className = 'user-name';
+        span.id = 'displayUsername';
+        span.innerText = nickname || '用户';
+        input.replaceWith(span);
+        document.getElementById('editNicknameBtn').style.display = '';
+        if (!nickname) return;
+        try {
+            const res = await fetch('/user/update-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'nickname=' + encodeURIComponent(nickname)
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('displayUserSub').innerText = '昵称已更新';
+                showToast('昵称修改成功');
+            } else {
+                showToast(data.msg || '修改失败');
+            }
+        } catch(e) { showToast('网络错误'); }
+    }
+
+    // 头像上传
+    function triggerAvatarUpload() {
+        document.getElementById('avatarFileInput').click();
+    }
+
+    async function uploadAvatar(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { showToast('请选择图片文件'); return; }
+        if (file.size > 2 * 1024 * 1024) { showToast('图片不能超过2MB'); return; }
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/user/upload-avatar', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('avatarImg').src = data.avatar + '?t=' + Date.now();
+                document.getElementById('avatarImg').style.display = 'block';
+                document.getElementById('defaultAvatarIcon').style.display = 'none';
+                showToast('头像更新成功');
+            } else {
+                showToast(data.msg || '上传失败');
+            }
+        } catch(e) { showToast('网络错误'); }
+    }
+
+    // 修改密码弹窗
+    function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+    function closePasswordModal() {
+        document.getElementById('passwordModal').style.display = 'none';
+        document.getElementById('oldPwd').value = '';
+        document.getElementById('newPwd').value = '';
+        document.getElementById('confirmPwd').value = '';
+    }
+    async function changePassword() {
+        const oldPwd = document.getElementById('oldPwd').value;
+        const newPwd = document.getElementById('newPwd').value;
+        const confirmPwd = document.getElementById('confirmPwd').value;
+        if (!oldPwd || !newPwd) { showToast('请填写完整'); return; }
+        if (newPwd.length < 6) { showToast('新密码至少6位'); return; }
+        if (newPwd !== confirmPwd) { showToast('两次密码不一致'); return; }
+        try {
+            const res = await fetch('/user/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'oldPassword=' + encodeURIComponent(oldPwd) + '&newPassword=' + encodeURIComponent(newPwd)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('密码修改成功');
+                closePasswordModal();
+            } else {
+                showToast(data.msg || '修改失败');
+            }
+        } catch(e) { showToast('网络错误'); }
+    }
+
+    // 意见反馈弹窗
+    function openFeedbackModal() { document.getElementById('feedbackModal').style.display = 'flex'; }
+    function closeFeedbackModal() {
+        document.getElementById('feedbackModal').style.display = 'none';
+        document.getElementById('feedbackContent').value = '';
+    }
+    function submitFeedback() {
+        const content = document.getElementById('feedbackContent').value.trim();
+        if (!content) { showToast('请输入反馈内容'); return; }
+        showToast('感谢您的反馈！');
+        closeFeedbackModal();
+    }
+
+    function handleLogout() {
+        document.getElementById('logoutConfirmOverlay').style.display = 'flex';
+    }
+    function closeLogoutConfirm() {
+        document.getElementById('logoutConfirmOverlay').style.display = 'none';
+    }
+    function confirmLogout() {
+        window.location.href = '/logout';
+    }
+
+    // ========== 周报设置 ==========
+    let currentReportDay = 0;
+
+    async function loadReportSettings() {
+        try {
+            const res = await fetch('/user/settings');
+            const data = await res.json();
+            if (data.success) {
+                currentReportDay = data.weeklyReportDay || 0;
+                updateDayButtons(currentReportDay);
+            }
+        } catch(e) {}
+    }
+
+    function updateDayButtons(selectedDay) {
+        const dayNames = ['关闭', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            const d = parseInt(btn.dataset.day);
+            btn.classList.toggle('selected', d === selectedDay);
+        });
+        const hint = document.getElementById('reportHint');
+        if (selectedDay === 0) {
+            hint.innerText = '当前：不接收周报';
+        } else {
+            hint.innerText = '当前：每' + dayNames[selectedDay] + '上午 9:00 自动发送周报';
+        }
+    }
+
+    function openReportSettingsModal() {
+        loadReportSettings();
+        document.getElementById('reportSettingsModal').style.display = 'flex';
+
+        // Bind day button clicks
+        document.querySelectorAll('#daySelector .day-btn').forEach(btn => {
+            btn.onclick = function() {
+                currentReportDay = parseInt(this.dataset.day);
+                updateDayButtons(currentReportDay);
+            };
+        });
+    }
+
+    function closeReportSettingsModal() {
+        document.getElementById('reportSettingsModal').style.display = 'none';
+    }
+
+    async function saveReportSettings() {
+        try {
+            const res = await fetch('/user/settings/weekly-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'day=' + currentReportDay
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.msg);
+                closeReportSettingsModal();
+            } else {
+                showToast(data.msg || '保存失败');
+            }
+        } catch(e) { showToast('网络错误'); }
+    }
+
+    async function generateReportNow() {
+        showToast('正在生成周报...');
+        try {
+            const res = await fetch('/notification/generate-report', { method: 'POST' });
+            const data = await res.json();
+            if (data.code === 200) {
+                showToast(data.msg);
+                closeReportSettingsModal();
+                // 自动跳转到消息页面查看周报
+                setTimeout(() => { window.location.href = '/messages'; }, 800);
+            } else {
+                showToast(data.msg || '生成失败');
+            }
+        } catch(e) { showToast('网络错误'); }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1500);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的日记</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/js/theme.js"></script>
+    <style>
+        :root {
+            --primary: #73A8C2;
+            --primary-dark: #5A8FA8;
+            --primary-light: #E4F0F6;
+            --bg: #EEF3F7;
+            --card: #FFFFFF;
+            --text: #2C3E50;
+            --text-light: #7F8C8D;
+            --border: #E8ECF1;
+            --success: #6ECB8C;
+            --warning: #F5A623;
+            --danger: #E85D75;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow: 0 2px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --transition: 0.2s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Microsoft Yahei', sans-serif;
+            background: var(--bg); height: 100vh; overflow: hidden; color: var(--text);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed; top: 0; left: 0; width: 210px; height: 100vh;
+            background: var(--card); z-index: 10;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.04);
+            padding: 24px 18px; display: flex; flex-direction: column;
+        }
+        .sidebar-logo {
+            font-size: 20px; font-weight: 700; color: var(--primary);
+            text-align: center; margin-bottom: 28px; letter-spacing: -0.5px;
+        }
+        .menu-wrapper { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+        .menu-item {
+            padding: 11px 14px; border-radius: var(--radius-sm); font-size: 14px;
+            cursor: pointer; display: flex; justify-content: space-between;
+            align-items: center; color: var(--text); transition: all var(--transition);
+            font-weight: 500;
+        }
+        .menu-item:hover { background: var(--primary-light); color: var(--primary); }
+        .menu-item i { font-size: 16px; width: 22px; text-align: center; color: var(--text-light); }
+        .menu-item:hover i { color: var(--primary); }
+        .menu-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+        .menu-item.active i { color: var(--primary); }
+        .sidebar-footer { border-top: 1px solid var(--border); padding-top: 14px; margin-top: auto; }
+
+        /* Main */
+        .main {
+            margin-left: 210px; height: 100vh;
+            display: flex; flex-direction: column; padding: 20px 28px; overflow: hidden;
+        }
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; flex-shrink: 0;
+        }
+        .page-title { font-size: 22px; font-weight: 700; }
+        .page-subtitle { font-size: 13px; color: var(--text-light); margin-top: 2px; }
+        .top-right { display: flex; align-items: center; gap: 6px; }
+        .icon-btn {
+            width: 40px; height: 40px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; background: var(--card);
+            border: none; font-size: 18px; color: var(--text-light); cursor: pointer;
+            box-shadow: var(--shadow-sm); transition: all var(--transition);
+        }
+        .icon-btn:hover { color: var(--primary); background: var(--primary-light); }
+
+        /* Content */
+        .content-area {
+            flex: 1; display: flex; gap: 22px; min-height: 0; overflow: hidden;
+        }
+
+        /* Left: Editor */
+        .editor-panel {
+            flex: 1; min-width: 0; display: flex; flex-direction: column;
+            background: var(--card); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden;
+        }
+        .editor-header {
+            padding: 14px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .editor-header h2 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+        .editor-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+        .editor-body::-webkit-scrollbar { width: 5px; }
+        .editor-body::-webkit-scrollbar-thumb { background: #d0d8e0; border-radius: 10px; }
+
+        .info-row {
+            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: center;
+        }
+        .info-label { font-size: 13px; color: var(--text-light); font-weight: 500; margin-right: 2px; }
+        .tag-btn {
+            padding: 6px 12px; border: 2px solid var(--border); border-radius: 18px;
+            background: var(--card); font-size: 13px; cursor: pointer;
+            transition: all var(--transition); color: var(--text); font-weight: 500;
+        }
+        .tag-btn:hover { border-color: var(--primary); }
+        .tag-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .score-input {
+            width: 56px; padding: 6px 8px; border: 2px solid var(--border);
+            border-radius: 8px; outline: none; font-size: 13px; text-align: center;
+            background: var(--card); color: var(--text);
+        }
+        .score-input:focus { border-color: var(--primary); }
+
+        .lock-row {
+            display: flex; align-items: center; gap: 8px; margin-left: auto;
+        }
+        .lock-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .lock-row input[type="password"] {
+            padding: 6px 10px; border: 2px solid var(--border); border-radius: 8px;
+            outline: none; font-size: 13px; width: 110px; background: var(--card); color: var(--text);
+        }
+        .lock-row input[type="password"]:focus { border-color: var(--primary); }
+
+        .editor-box {
+            border: 2px solid var(--border); border-radius: var(--radius-sm);
+            overflow: hidden; margin-bottom: 12px; transition: border-color var(--transition);
+        }
+        .editor-box:focus-within { border-color: var(--primary); }
+        .editor-toolbar {
+            background: #f8fafc; padding: 8px 14px; border-bottom: 1px solid var(--border);
+            display: flex; gap: 8px; align-items: center;
+        }
+        .tool-btn {
+            padding: 5px 12px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--card); font-size: 12px; cursor: pointer;
+            transition: all var(--transition); color: var(--text);
+        }
+        .tool-btn:hover { border-color: var(--primary); color: var(--primary); }
+        #diaryContent {
+            width: 100%; height: 280px; padding: 14px; border: none;
+            outline: none; font-size: 14px; resize: none; font-family: inherit;
+            color: var(--text); background: var(--card); line-height: 1.7;
+        }
+        #diaryContent::placeholder { color: #bcc4cc; }
+
+        .img-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .img-preview img {
+            width: 80px; height: 80px; object-fit: cover; border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .save-btn {
+            padding: 11px 28px; border: none; border-radius: 22px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all var(--transition); box-shadow: 0 4px 14px rgba(115,168,194,0.3);
+        }
+        .save-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(115,168,194,0.4); }
+
+        /* Right: Calendar */
+        .calendar-panel {
+            width: 380px; flex-shrink: 0; display: flex; flex-direction: column;
+            background: var(--card); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden;
+        }
+        .calendar-header {
+            padding: 14px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .calendar-header h2 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .cal-nav-btns { display: flex; gap: 4px; }
+        .cal-nav-btn {
+            width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border);
+            background: var(--card); cursor: pointer; font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--transition); color: var(--text-light);
+        }
+        .cal-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        .calendar-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+        .calendar-body::-webkit-scrollbar { width: 5px; }
+        .calendar-body::-webkit-scrollbar-thumb { background: #d0d8e0; border-radius: 10px; }
+
+        .cal-month-title { font-size: 14px; font-weight: 600; text-align: center; margin-bottom: 10px; color: var(--text); }
+        .cal-week-row {
+            display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
+            font-size: 11px; font-weight: 600; color: var(--text-light); margin-bottom: 4px;
+        }
+        .cal-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+        }
+        .cal-cell {
+            aspect-ratio: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; border-radius: 6px;
+            font-size: 13px; cursor: pointer; transition: all var(--transition);
+            border: 1.5px solid transparent; font-weight: 500;
+        }
+        .cal-cell:hover { background: var(--primary-light); }
+        .cal-cell.other-month { color: #d0d8e0; }
+        .cal-cell.today { border-color: var(--primary); font-weight: 700; }
+        .cal-cell.has-diary { background: var(--primary-light); color: var(--primary-dark); }
+        .cal-cell.has-diary.today { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .cal-cell.selected { box-shadow: 0 0 0 2px var(--warning); }
+
+        .diary-list-section { margin-top: 14px; }
+        .diary-list-section h4 {
+            font-size: 13px; font-weight: 600; margin-bottom: 8px;
+            padding-top: 12px; border-top: 1px solid var(--border); color: var(--text);
+        }
+        .diary-card {
+            background: #f8fafc; padding: 12px; border-radius: var(--radius-sm);
+            margin-bottom: 8px; position: relative;
+        }
+        .diary-card-header {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+            font-size: 13px; color: var(--text-light);
+        }
+        .diary-card-text {
+            font-size: 14px; color: var(--text); line-height: 1.6;
+            white-space: pre-wrap; margin-bottom: 6px;
+        }
+        .diary-card-imgs { display: flex; gap: 6px; margin-bottom: 6px; }
+        .diary-card-imgs img {
+            width: 64px; height: 64px; object-fit: cover; border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .diary-card-footer {
+            font-size: 11px; color: var(--text-light);
+            display: flex; gap: 12px; align-items: center;
+        }
+        .unlock-link {
+            padding: 3px 10px; background: var(--primary); color: #fff;
+            border-radius: 10px; font-size: 11px; cursor: pointer; border: none;
+        }
+
+        /* Lock modal */
+        .lock-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45); display: flex; align-items: center;
+            justify-content: center; z-index: 9999;
+        }
+        .lock-modal-box {
+            background: var(--card); padding: 32px 28px; border-radius: var(--radius);
+            text-align: center; box-shadow: var(--shadow-lg);
+        }
+        .lock-modal-box h3 { margin-bottom: 16px; font-size: 17px; }
+        .lock-modal-box input {
+            padding: 10px 14px; width: 220px; border: 2px solid var(--border);
+            border-radius: 8px; outline: none; font-size: 14px; margin-bottom: 12px;
+            background: var(--card); color: var(--text);
+        }
+        .lock-modal-box input:focus { border-color: var(--primary); }
+        .lock-modal-box button {
+            padding: 9px 24px; background: var(--primary); color: #fff;
+            border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600;
+        }
+        .hide { display: none !important; }
+
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--text); color: #fff; padding: 12px 32px;
+            border-radius: 25px; font-size: 15px; font-weight: 600;
+            z-index: 99999; opacity: 0; transition: all 0.3s ease; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 12px; }
+            .content-area { flex-direction: column; }
+            .calendar-panel { width: 100%; min-height: 400px; }
+        }
+    </style>
+</head>
+
+<body>
+<!-- 全局密码弹窗 -->
+<div class="lock-modal" id="globalLock">
+    <div class="lock-modal-box">
+        <h3><i class="fa-solid fa-lock" style="color:var(--primary);"></i> 请输入日记页面密码</h3>
+        <input type="password" id="globalPwdInput" placeholder="请输入密码" onkeydown="if(event.key==='Enter')checkGlobalPwd()">
+        <br>
+        <button onclick="checkGlobalPwd()">确认进入</button>
+    </div>
+</div>
+
+<div class="hide" id="mainContainer">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-logo">TaskFlow</div>
+        <div class="menu-wrapper">
+            <div class="menu-item" onclick="location.href='/index'"><i class="fa-solid fa-sun"></i> 今日待办</div>
+            <div class="menu-item" onclick="location.href='/tasks'"><i class="fa-solid fa-list-check"></i> 待办事项</div>
+            <div class="menu-item" onclick="location.href='/shitu'"><i class="fa-solid fa-calendar-days"></i> 任务视图</div>
+            <div class="menu-item active"><i class="fa-solid fa-book"></i> 写日记</div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="menu-item" onclick="location.href='/profile'"><i class="fa-solid fa-user"></i> 个人中心</div>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+        <div class="top-bar">
+            <div>
+                <div class="page-title">我的日记</div>
+                <div class="page-subtitle">记录每天的生活点滴</div>
+            </div>
+            <div class="top-right">
+                <button class="icon-btn" onclick="location.href='/index'" title="今日待办"><i class="fa-solid fa-sun"></i></button>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <!-- 左侧：编辑区 -->
+            <div class="editor-panel">
+                <div class="editor-header">
+                    <h2><i class="fa-solid fa-pen-to-square" style="color:var(--primary);"></i> 写日记</h2>
+                </div>
+                <div class="editor-body">
+                    <!-- 心情 -->
+                    <div class="info-row">
+                        <span class="info-label">心情：</span>
+                        <button class="tag-btn" data-mood="开心 😊">开心 😊</button>
+                        <button class="tag-btn" data-mood="平静 😌">平静 😌</button>
+                        <button class="tag-btn" data-mood="低落 😔">低落 😔</button>
+                        <button class="tag-btn" data-mood="愤怒 😡">愤怒 😡</button>
+                        <span class="info-label" style="margin-left:6px;">打分：</span>
+                        <input type="number" class="score-input" id="moodScore" min="1" max="10" placeholder="1-10">
+                    </div>
+                    <!-- 天气 -->
+                    <div class="info-row">
+                        <span class="info-label">天气：</span>
+                        <button class="tag-btn" data-weather="晴 ☀️">晴 ☀️</button>
+                        <button class="tag-btn" data-weather="多云 ⛅">多云 ⛅</button>
+                        <button class="tag-btn" data-weather="小雨 🌧️">小雨 🌧️</button>
+                        <button class="tag-btn" data-weather="雪 ❄️">雪 ❄️</button>
+                        <div class="lock-row">
+                            <label class="info-label">本篇加密：</label>
+                            <input type="checkbox" id="lockSwitch">
+                            <input type="password" id="lockPwd" placeholder="设定密码" style="display:none;">
+                        </div>
+                    </div>
+
+                    <!-- 编辑器 -->
+                    <div class="editor-box">
+                        <div class="editor-toolbar">
+                            <button class="tool-btn" onclick="document.getElementById('imgFile').click()"><i class="fa-solid fa-image"></i> 插入图片</button>
+                            <input type="file" id="imgFile" accept="image/*" multiple style="display:none;">
+                        </div>
+                        <textarea id="diaryContent" placeholder="开始记录今天的生活与感悟..."></textarea>
+                    </div>
+
+                    <!-- 图片预览 -->
+                    <div class="img-preview" id="imgPreview"></div>
+
+                    <button class="save-btn" onclick="saveDiary()"><i class="fa-solid fa-check"></i> 保存日记</button>
+                </div>
+            </div>
+
+            <!-- 右侧：日历 -->
+            <div class="calendar-panel">
+                <div class="calendar-header">
+                    <h2><i class="fa-solid fa-calendar-days" style="color:var(--primary);"></i> 历史日记</h2>
+                    <div class="cal-nav-btns">
+                        <button class="cal-nav-btn" onclick="prevMonth()"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button class="cal-nav-btn" onclick="nextMonth()"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="calendar-body">
+                    <div class="cal-month-title" id="calendarMonth">2026年5月</div>
+                    <div class="cal-week-row">
+                        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                    </div>
+                    <div class="cal-grid" id="calendarBody"></div>
+                    <div class="diary-list-section" id="selectDiaryList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const GLOBAL_PWD_KEY = "diaryGlobalPwd";
+    let selectedMood = "";
+    let selectedWeather = "";
+    let imgList = [];
+    let currentCalendarDate = new Date();
+
+    // ========== 初始化 ==========
+    window.onload = function() {
+        if (!localStorage.getItem(GLOBAL_PWD_KEY)) {
+            let pwd = prompt("请设置日记页面访问密码");
+            if (pwd) {
+                localStorage.setItem(GLOBAL_PWD_KEY, pwd);
+            } else {
+                alert("密码不能为空，刷新重试");
+                return;
+            }
+        }
+    };
+
+    function checkGlobalPwd() {
+        const inputPwd = document.getElementById("globalPwdInput").value;
+        const realPwd = localStorage.getItem(GLOBAL_PWD_KEY);
+        if (inputPwd === realPwd) {
+            document.getElementById("globalLock").classList.add("hide");
+            document.getElementById("mainContainer").classList.remove("hide");
+            renderCalendar();
+        } else {
+            showToast("密码错误！");
+        }
+    }
+
+    // ========== 心情 & 天气选择 ==========
+    document.addEventListener('click', function(e) {
+        const moodBtn = e.target.closest('[data-mood]');
+        if (moodBtn) {
+            document.querySelectorAll('[data-mood]').forEach(b => b.classList.remove('active'));
+            moodBtn.classList.add('active');
+            selectedMood = moodBtn.dataset.mood;
+        }
+        const weatherBtn = e.target.closest('[data-weather]');
+        if (weatherBtn) {
+            document.querySelectorAll('[data-weather]').forEach(b => b.classList.remove('active'));
+            weatherBtn.classList.add('active');
+            selectedWeather = weatherBtn.dataset.weather;
+        }
+    });
+
+    // 加密开关
+    document.getElementById('lockSwitch').addEventListener('change', function() {
+        document.getElementById('lockPwd').style.display = this.checked ? 'inline-block' : 'none';
+    });
+
+    // ========== 图片 ==========
+    document.getElementById('imgFile').addEventListener('change', function(e) {
+        const preview = document.getElementById('imgPreview');
+        for (let f of e.target.files) {
+            const url = URL.createObjectURL(f);
+            imgList.push(url);
+            const img = document.createElement('img');
+            img.src = url;
+            preview.appendChild(img);
+        }
+    });
+
+    // ========== 保存 ==========
+    function saveDiary() {
+        const content = document.getElementById('diaryContent').value.trim();
+        const mood = selectedMood;
+        const score = document.getElementById('moodScore').value || "未打分";
+        const weather = selectedWeather;
+        const needLock = document.getElementById('lockSwitch').checked;
+        const pwd = document.getElementById('lockPwd').value;
+
+        if (!content || !mood || !weather) {
+            showToast("请完善日记内容、心情和天气");
+            return;
+        }
+        if (needLock && !pwd) {
+            showToast("开启加密请设置密码");
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const timeStr = now.toLocaleString();
+
+        const diary = {
+            date: dateStr, time: timeStr, mood, score, weather,
+            content, imgs: [...imgList], lock: needLock, pwd: pwd
+        };
+
+        let list = JSON.parse(localStorage.getItem('diaryList') || '[]');
+        list.unshift(diary);
+        localStorage.setItem('diaryList', JSON.stringify(list));
+
+        showToast("日记保存成功！");
+        setTimeout(() => location.reload(), 800);
+    }
+
+    // ========== 日历 ==========
+    function renderCalendar() {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        document.getElementById("calendarMonth").innerText = `${year}年${month+1}月`;
+
+        const firstDay = new Date(year, month, 1);
+        const startWeek = firstDay.getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        const currentMonthStr = `${year}-${String(month+1).padStart(2,'0')}`;
+
+        const diaryList = JSON.parse(localStorage.getItem("diaryList") || "[]");
+        const hasDiaryDate = new Set();
+        diaryList.forEach(item => {
+            if (item.date.startsWith(currentMonthStr)) hasDiaryDate.add(item.date);
+        });
+
+        let html = "";
+        for (let i = 0; i < startWeek; i++) {
+            html += `<div class="cal-cell other-month"></div>`;
+        }
+        for (let d = 1; d <= totalDays; d++) {
+            const dayStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            let cls = "cal-cell";
+            if (dayStr === todayStr) cls += " today";
+            if (hasDiaryDate.has(dayStr)) cls += " has-diary";
+            html += `<div class="${cls}" onclick="selectDate('${dayStr}')">${d}</div>`;
+        }
+        document.getElementById("calendarBody").innerHTML = html;
+    }
+
+    function prevMonth() {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+        renderCalendar();
+        document.getElementById("selectDiaryList").innerHTML = "";
+    }
+    function nextMonth() {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+        renderCalendar();
+        document.getElementById("selectDiaryList").innerHTML = "";
+    }
+
+    function selectDate(dateStr) {
+        const diaryList = JSON.parse(localStorage.getItem("diaryList") || "[]");
+        const targetDiaries = diaryList.filter(item => item.date === dateStr);
+        const listBox = document.getElementById("selectDiaryList");
+
+        let html = `<h4>📅 ${dateStr}</h4>`;
+        if (targetDiaries.length === 0) {
+            html += "<div style='color:var(--text-light);font-size:13px;'>该日期暂无日记</div>";
+            listBox.innerHTML = html;
+            return;
+        }
+
+        targetDiaries.forEach(d => {
+            let showContent = d.content;
+            let unlockHtml = "";
+            if (d.lock) {
+                showContent = "🔒 本篇日记已加密";
+                unlockHtml = `<button class="unlock-link" onclick="unlockDiary(this)">解锁查看</button>`;
+            }
+
+            let imgHtml = "";
+            if (d.imgs && d.imgs.length > 0) {
+                imgHtml = `<div class="diary-card-imgs">${d.imgs.map(u => `<img src="${u}">`).join('')}</div>`;
+            }
+
+            html += `
+                <div class="diary-card">
+                    <div class="diary-card-header">${d.mood} · 打分${d.score} · ${d.weather}</div>
+                    <div class="diary-card-text">${showContent}</div>
+                    ${imgHtml}
+                    <div class="diary-card-footer">
+                        <span>${d.time}</span>
+                        ${d.lock ? '<span>🔒 已加密</span>' : ''}
+                        ${unlockHtml}
+                    </div>
+                    <div style="display:none;" class="real-content">${d.content.replace(/"/g, '&quot;')}</div>
+                    <div style="display:none;" class="real-pwd">${d.pwd || ''}</div>
+                </div>`;
+        });
+        listBox.innerHTML = html;
+    }
+
+    function unlockDiary(btn) {
+        const card = btn.closest('.diary-card');
+        const realPwd = card.querySelector('.real-pwd').innerText;
+        const realContent = card.querySelector('.real-content').innerText;
+        const input = prompt("请输入本篇日记密码：");
+        if (input === realPwd) {
+            card.querySelector('.diary-card-text').innerText = realContent;
+            btn.remove();
+            card.querySelector('.diary-card-footer span:last-child')?.remove();
+        } else {
+            showToast("密码错误！");
+        }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1500);
+    }
+</script>
+</body>
+</html>

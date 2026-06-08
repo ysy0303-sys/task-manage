@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>注册</title>
+</head>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
+}
+body {
+    background: linear-gradient(135deg, #D6E8F5 0%, #B7D1E5 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+.register-box {
+    width: 420px;
+    padding: 45px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+.register-title {
+    text-align: center;
+    margin-bottom: 35px;
+    color: #4A7C96;
+    font-size: 32px;
+}
+.input-item {
+    margin-bottom: 25px;
+}
+.input-item label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #556B75;
+    margin-bottom: 8px;
+    display: block;
+}
+.input-item input {
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background-color: #F0F4F7;
+    font-size: 15px;
+    border: none;
+    outline: none;
+}
+.register-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(90deg, #73A8C2, #6297B1);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.back-login {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #88A9BB;
+    text-decoration: none;
+}
+.error-tip {
+    color: red;
+    text-align: center;
+    margin-top: 10px;
+}
+</style>
+<body>
+<div class="register-box">
+    <h2 class="register-title">用户注册</h2>
+    <div class="input-item">
+        <label>用户名</label>
+        <input type="text" id="username" placeholder="请输入用户名">
+    </div>
+    <div class="input-item">
+        <label>密码</label>
+        <input type="password" id="password" placeholder="请输入密码">
+    </div>
+    <div class="input-item">
+        <label>确认密码</label>
+        <input type="password" id="confirmPassword" placeholder="请再次输入密码">
+    </div>
+    <button class="register-btn" onclick="register()">注册</button>
+    <div class="error-tip" id="errorMsg"></div>
+    <a href="/login" class="back-login">已有账号？去登录</a>
+</div>
+
+<script>
+async function register() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const confirmPwd = document.getElementById('confirmPassword').value;
+    const errorMsg = document.getElementById('errorMsg');
+
+    errorMsg.innerText = '';
+
+    if (!username) { errorMsg.innerText = "请输入用户名！"; return; }
+    if (!password) { errorMsg.innerText = "请输入密码！"; return; }
+    if (!confirmPwd) { errorMsg.innerText = "请确认密码！"; return; }
+    if (password.length < 6) { errorMsg.innerText = "密码至少6位！"; return; }
+    if (password !== confirmPwd) { errorMsg.innerText = "两次密码不一致！"; return; }
+
+    try {
+        const res = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password)
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            alert("注册成功！");
+            location.href = '/login';
+        } else {
+            errorMsg.innerText = result.msg;
+        }
+    } catch (e) {
+        errorMsg.innerText = "注册失败";
+    }
+}
+</script>
+</body>
+</html>
